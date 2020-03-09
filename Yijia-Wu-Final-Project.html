@@ -1,0 +1,248 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Computer Graphics - Final Project</title>
+
+    <link href="resources/bootstrap.min.css" rel="stylesheet">
+    <link href="resources/custom2016.css" rel="stylesheet">
+    
+	<script src="common.js"></script>
+    <script src="glUtil.js"></script>
+    <script src="uiUtil.js"></script>
+	<script src="vector.js"></script>
+    <script src="matrix.js"></script>
+    <script src="cube.js"></script>
+	<script src="arm.js"></script>
+	<script src="skeleton.js"></script>
+	<script src="joint.js"></script>
+    <script src="skin.js"></script>
+    
+    <script src="drawutils.js"></script>
+	<script src="node.js"></script>
+	<script src="beziercurve.js"></script>
+	<script src="catmullromspline.js"></script>
+    <script src="bspline.js"></script>
+	
+	<!-- Add all tasks -->
+    <script src="task3.js"></script>
+    
+</head>
+
+<body onload="setupAssignment();">
+    <div class="container contentWrapper">
+        <div class="pageContent">
+            <div class="canvas-container">
+                <canvas id="task-1" width="820" height="461" style="margin: 0; border: 1px solid black;"></canvas>
+                <div class="slider-container"><div id="frame"></div></div>
+            </div>
+            <div style="text-align: center; user-select: none; -webkit-user-select: none; -moz-user-select: none;">
+                <form>                
+                    <button onclick="Clear(1);">Clear</button>
+                </form>
+            </div>
+            <!-- ================================================================= -->           
+            <div class="canvas-container">
+                <canvas id="task-2" width="820" height="461" style="margin: 0; border: 1px solid black;"></canvas>
+            </div>
+            <div style="text-align: center; user-select: none; -webkit-user-select: none; -moz-user-select: none;">
+				<input type="checkbox" checked="true" onchange="task2Curve[curve_id].setShowControlPolygon(this.checked);" id="task2CboxNodes1" /> Show Control Polygon
+				<input type="checkbox" checked="true" onchange="task2Curve[curve_id].setShowTangents(this.checked);" id="task2CboxNodes2" /> Show Tangents
+				<form class="form-inline">
+					<div class="form-group">
+						<label id="Task2ParameterLabel">Tension 's':</label>
+					</div>
+					<div class="form-group">
+						<input id="task2Slider1" type ="range" min ="0.0" max="1.0" step ="0.01" value = "0.5" oninput="task2Curve[curve_id].setTension(this.value); printValue('task2Slider1','task2RangeValue1')"/>
+					</div>
+					<div class="form-group">
+						<input id="task2RangeValue1" type="text" size="4" value = "0.5" readonly/>
+					</div>
+				</form>
+				<form class="form-inline">
+					<div class="form-group">
+						<label id="Task2ParameterLabe2">Segments :</label>
+					</div>
+					<div class="form-group">
+						<input id="task2Slider2" type ="range" min ="1" max="32" step ="1" value = "8" oninput="task2Curve[curve_id].setNumSegments(this.value); printValue('task2Slider2','task2RangeValue2')"/>
+					</div>
+					<div class="form-group">
+						<input id="task2RangeValue2" type="text" size="4" value = "8" readonly/>
+                    </div>
+                </form>
+				<form class="form-inline">                
+                    <div class="form-group">
+                        <label id="Task2ParameterLabel">Frame :</label>
+                    </div>
+                    <div class="form-group">
+                        <input id="task2Slider3" type ="range" min ="0" max="50" step ="1" value = "3" oninput="task2Curve[curve_id].setFrame(this.value); printValue('task2Slider3','task2RangeValue3')"/>
+                    </div>
+                    <div class="form-group">
+                        <input id="task2RangeValue3" type="text" size="4" value = "3" readonly/>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="name">Value</label>
+                        <input type="text" class="form-control" placeholder="value" oninput="task2Curve[curve_id].setValue(this.value);"/>
+                    </div>
+				    <button onclick="addnode();">Add Node</button>
+                </form>
+				<form class="form-inline"> 
+                    <div class="form-group">
+                        <label for="name">Joints</label>
+                        <select id="Joints" multiple class="form-control" onchange="selectJoint();">
+                            <option value=0>Upper Arm</option>
+                            <option value=1>Fore Arm</option>
+                        </select>
+                    </div>
+                </form>
+				<button onclick="clearCurve(2);">Clear Canvas</button>
+            </div>
+			<!-- ================================================================= -->
+        </div>
+    </div>
+    <script>
+        var task2Curve = new Array();
+        // 获取canvas元素
+        let canvas = document.getElementById('task-2');
+        // 获取canvas绘图环境
+        let context = canvas.getContext('2d');
+
+        var curve_id = 0;
+
+        var task = null;
+        var currentFrame = 30;
+
+        function selectJoint(){
+            var nSel = document.getElementById("Joints");
+            var index = nSel.selectedIndex;
+            curve_id = nSel.options[index].value;
+            for (var i = 0; i < task.skeleton.getNumJoints(); ++i) {
+                task2Curve[i].active = false;
+            }
+        }
+
+        function setupAssignment() {
+            task = setupTask("task-1", Task2, false);
+            // Set up the curves
+            task2Curve = new Array();
+
+            for (var i = 0; i < task.skeleton.getNumJoints(); ++i) {
+                task2Curve.push(new CatmullRomSpline("task-2"));
+            }
+
+            new Slider("frame", 0, 800, 0, true, function(frame) {
+                this.setLabel("Frame: " + frame);
+                currentFrame = frame; 
+                console.log("currentframe", currentFrame);
+                //task.setJointAngle(1, angle);
+            });
+
+            draw();
+        }
+        
+        function Clear(canvasId) {
+			if(canvasId == 1)
+                task1 = setupTask("task-1", Task1, false);
+            else if(canvasId == 2)
+                for(var i=0; i<task2Curve.length; i++)
+                    task2Curve[i] = new CatmullRomSpline("task-2");
+        }
+
+        function addnode(){
+            task2Curve.addnode();
+        }
+
+        function draw() {
+            for (var i = 0; i < task.skeleton.getNumJoints(); ++i) {
+                var jointId = i;
+                var jointName = task.skeleton.getJointName(i);
+                
+                var angle = task2Curve[i].getValue(currentFrame+30.5);
+                //console.log("angle", angle);
+                task.setJointAngle(jointId, angle);
+            }
+
+            task2Curve[curve_id].active = true;
+            task2Curve[curve_id].drawTask5();
+            			
+            drawGrid(10, 10, 'lightgray', 0.5);
+            drawAxes([30.5, 330.5], 700, 300, 'blue', 2);
+			
+			requestAnimFrame(function() {
+                draw();
+                
+			});
+        }
+        
+        window.requestAnimFrame = (function(callback) {
+			return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
+			function(callback) {
+				window.setTimeout(callback, 1000 / 30);
+			};
+        })();
+        
+        function printValue(sliderID, textbox) {
+			var x = document.getElementById(textbox);
+			var y = document.getElementById(sliderID);
+			x.value = y.value;
+        }
+    
+        function drawGrid(stepX, stepY, color, lineWidth){
+            // 创建垂直格网线路径
+            for(let i = 0.5 + stepX; i < canvas.width; i += stepX){
+                context.moveTo(i, 0);
+                context.lineTo(i, canvas.height);
+            }
+            // 创建水平格网线路径
+            for(let j = 0.5 + stepY; j < canvas.height; j += stepY){
+                context.moveTo(0, j);
+                context.lineTo(canvas.width, j);
+            }
+            // 设置绘制颜色
+            context.strokeStyle = color;
+            // 设置绘制线段的宽度
+            context.lineWidth = lineWidth;
+            // 绘制格网
+            context.stroke();
+            // 清除路径
+            context.beginPath();
+        }
+    
+        function drawAxes(origin, x_Len, y_Len, color, lineWidth){
+    
+            // 创建水平坐标轴路径
+            context.moveTo(origin[0], origin[1]);
+            context.lineTo(origin[0] + x_Len, origin[1]);
+    
+            // 创建垂直坐标轴路径
+            context.moveTo(origin[0], origin[1]);
+            context.lineTo(origin[0], origin[1] - y_Len);
+    
+            // 创建坐标轴的刻度线路径
+            for(let i = origin[0] + 30; i < x_Len; i += 30){
+                context.moveTo(i, origin[1] - 10);
+                context.lineTo(i, origin[1] + 10);
+            }
+            for(let j = origin[1] - 30; j > origin[1] - y_Len; j -= 30){
+                //console.log(j);
+                context.moveTo(origin[0] - 10, j);
+                context.lineTo(origin[0] + 10, j);
+            }
+            // 设置绘制颜色
+            context.strokeStyle = color;
+            // 设置绘制线段的宽度
+            context.lineWidth = lineWidth;
+            // 绘制坐标轴
+            context.stroke();
+            // 清除路径
+            context.beginPath();
+        }
+    </script>
+     
+</body>
+
+</html>
