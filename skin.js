@@ -1,13 +1,3 @@
-// TODO: Task 2 - Subtask 1
-//
-// Compute the distance of point `pt' to the line
-// between point `vertex0' and `vertex1'.
-//
-// Note: You can do this by projecting the point onto the (infinite) line
-// and then computing the distance between the projection and the point.
-// You need to check whether the projection actually lies within the
-// line segment (it might lie outside) - if it doesn't, you need to instead
-// return the distance to the closest end point of the segment (i.e. vertex0/vertex1)
 function computeDistanceToLine(pt, vertex0, vertex1)
 {
 	var lineseg = vertex1.subtract(vertex0);

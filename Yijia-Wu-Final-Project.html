@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'>
+<!DOCTYPE html>
 <html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>
 <head>
     <meta charset="utf-8">
@@ -17,6 +17,7 @@
     <script src="matrix.js"></script>
     <script src="cube.js"></script>
 	<script src="arm.js"></script>
+	<!-- <script src="snowman.js"></script> -->
 	<script src="skeleton.js"></script>
 	<script src="joint.js"></script>
     <script src="skin.js"></script>
@@ -24,7 +25,7 @@
     <script src="drawutils.js"></script>
 	<script src="node.js"></script>
 	<script src="beziercurve.js"></script>
-	<script src="catmullromspline.js"></script>
+	<script src="Interpolation.js"></script>
     <script src="bspline.js"></script>
 	
 	<!-- Add all tasks -->
@@ -35,17 +36,26 @@
 <body onload="setupAssignment();">
     <div class="container contentWrapper">
         <div class="pageContent">
-            <div class="canvas-container">
+            <div class="canvas-container" style="text-align: center;">
                 <canvas id="task-1" width="820" height="461" style="margin: 0; border: 1px solid black;"></canvas>
                 <div class="slider-container"><div id="frame"></div></div>
+                <!-- <div class="form-group">
+                    <label id="Task1ParameterLabel">Frame :</label>
+                </div>
+                <div class="form-group">
+                    <input id="FrameSlider" type ="range" min ="0" max="50" step ="1" value = "0" oninput="currentFrame = this.value;printValue('FrameSlider','Framevalue')"/>
+                </div>
+                <div class="form-group">
+                    <input id="Framevalue" type="text" size="4" value = "8" readonly/>
+                </div> -->
+                <button onclick="play=true;">Play</button>
+                <button onclick="restart();">Restart</button>
+                <button onclick="Stop();">Stop</button>
+                <button onclick="Clear(1);">Clear</button>
+                <!-- <input type="file" /> -->
             </div>
-            <div style="text-align: center; user-select: none; -webkit-user-select: none; -moz-user-select: none;">
-                <form>                
-                    <button onclick="Clear(1);">Clear</button>
-                </form>
-            </div>
-            <!-- ================================================================= -->           
-            <div class="canvas-container">
+            <!-- ================================================================= -->  
+            <div class="canvas-container" style="text-align: center;">
                 <canvas id="task-2" width="820" height="461" style="margin: 0; border: 1px solid black;"></canvas>
             </div>
             <div style="text-align: center; user-select: none; -webkit-user-select: none; -moz-user-select: none;">
@@ -61,8 +71,6 @@
 					<div class="form-group">
 						<input id="task2RangeValue1" type="text" size="4" value = "0.5" readonly/>
 					</div>
-				</form>
-				<form class="form-inline">
 					<div class="form-group">
 						<label id="Task2ParameterLabe2">Segments :</label>
 					</div>
@@ -75,31 +83,33 @@
                 </form>
 				<form class="form-inline">                
                     <div class="form-group">
-                        <label id="Task2ParameterLabel">Frame :</label>
-                    </div>
-                    <div class="form-group">
-                        <input id="task2Slider3" type ="range" min ="0" max="50" step ="1" value = "3" oninput="task2Curve[curve_id].setFrame(this.value); printValue('task2Slider3','task2RangeValue3')"/>
-                    </div>
-                    <div class="form-group">
-                        <input id="task2RangeValue3" type="text" size="4" value = "3" readonly/>
-                    </div>
-
-                    <div class="form-group">
                         <label for="name">Value</label>
                         <input type="text" class="form-control" placeholder="value" oninput="task2Curve[curve_id].setValue(this.value);"/>
                     </div>
-				    <button onclick="addnode();">Add Node</button>
                 </form>
 				<form class="form-inline"> 
                     <div class="form-group">
                         <label for="name">Joints</label>
                         <select id="Joints" multiple class="form-control" onchange="selectJoint();">
-                            <option value=0>Upper Arm</option>
-                            <option value=1>Fore Arm</option>
+                            <option value=0>Upper Arm-Twist</option>
+                            <option value=1>Upper Arm-Bend</option>
+                            <option value=2>Upper Arm-Rot</option>
+                            <option value=3>Fore Arm-Twist</option>
+                            <option value=4>Fore Arm-Bend</option>
+                            <option value=5>Fore Arm-Rot</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="name">Interpolation Method</label>
+                        <select id="intp" multiple class="form-control" onchange="selectMethod();">
+                            <option value="constant">Constant</option>
+                            <option value="linear">Linear Interpolation</option>
+                            <option value="CatmullRom">Catmull Rom</option>
                         </select>
                     </div>
                 </form>
-				<button onclick="clearCurve(2);">Clear Canvas</button>
+                <button onclick="Clear(2);">Clear Canvas</button>
+				<button onclick="task2Curve[curve_id].addNode(currentFrame+30.5);">Add Node</button>
             </div>
 			<!-- ================================================================= -->
         </div>
@@ -109,20 +119,29 @@
         // 获取canvas元素
         let canvas = document.getElementById('task-2');
         // 获取canvas绘图环境
-        let context = canvas.getContext('2d');
+        let ctx = canvas.getContext('2d');
 
         var curve_id = 0;
 
         var task = null;
-        var currentFrame = 30;
+        var currentFrame = 0;
+        var playFrame = 0;
+        var play = false;
 
         function selectJoint(){
             var nSel = document.getElementById("Joints");
             var index = nSel.selectedIndex;
             curve_id = nSel.options[index].value;
-            for (var i = 0; i < task.skeleton.getNumJoints(); ++i) {
+            for (var i = 0; i < task.skeleton.getNumJoints()*3; ++i) {
                 task2Curve[i].active = false;
             }
+        }
+
+        function selectMethod(){
+            var nSel = document.getElementById("intp");
+            var index = nSel.selectedIndex;
+            task2Curve[curve_id].method = nSel.options[index].value;
+            //console.log(task2Curve[i].method);
         }
 
         function setupAssignment() {
@@ -130,8 +149,8 @@
             // Set up the curves
             task2Curve = new Array();
 
-            for (var i = 0; i < task.skeleton.getNumJoints(); ++i) {
-                task2Curve.push(new CatmullRomSpline("task-2"));
+            for (var i = 0; i < task.skeleton.getNumJoints()*3; ++i) {
+                task2Curve.push(new Interpolation("task-2"));
             }
 
             new Slider("frame", 0, 800, 0, true, function(frame) {
@@ -145,25 +164,34 @@
         }
         
         function Clear(canvasId) {
-			if(canvasId == 1)
-                task1 = setupTask("task-1", Task1, false);
-            else if(canvasId == 2)
+			if(canvasId == 1){
+                task = setupTask("task-1", Task2, false);
                 for(var i=0; i<task2Curve.length; i++)
-                    task2Curve[i] = new CatmullRomSpline("task-2");
+                    task2Curve[i] = new Interpolation("task-2");
+            }
+            else if(canvasId == 2)
+                task2Curve[curve_id] = new Interpolation("task-2");
         }
 
         function addnode(){
-            task2Curve.addnode();
+            task2Curve[curve_id].addNode(currentFrame);
         }
 
         function draw() {
             for (var i = 0; i < task.skeleton.getNumJoints(); ++i) {
-                var jointId = i;
-                var jointName = task.skeleton.getJointName(i);
+                for(var dof = 0; dof < 3; ++dof){
+                    idx = i*3+dof;
+                    if (play){
+                        var angle = task2Curve[idx].getValue(playFrame+30.5);
+                        Play();
+                    }
+                    else
+                        var angle = task2Curve[idx].getValue(currentFrame+30.5);
+
+                    //console.log("angle", angle);
+                    task.setJointAngle(i, dof, angle);
+                }
                 
-                var angle = task2Curve[i].getValue(currentFrame+30.5);
-                //console.log("angle", angle);
-                task.setJointAngle(jointId, angle);
             }
 
             task2Curve[curve_id].active = true;
@@ -171,10 +199,10 @@
             			
             drawGrid(10, 10, 'lightgray', 0.5);
             drawAxes([30.5, 330.5], 700, 300, 'blue', 2);
+            drawframeline('red', 2, 3);
 			
 			requestAnimFrame(function() {
                 draw();
-                
 			});
         }
         
@@ -190,56 +218,95 @@
 			var y = document.getElementById(sliderID);
 			x.value = y.value;
         }
+
+        function Play(){
+            playFrame += 1;
+            console.log(playFrame);
+            if (playFrame > 500){
+                play = false;
+                playFrame = 0;
+            }
+        }
+
+        function restart(){
+            play = false;
+            playFrame = 0;
+            currentFrame = 0;
+        }
+
+        function Stop(){
+            play = false;
+            currentFrame = playFrame;
+        }
+
+        function drawframeline(color, lineWidth, radius){
+            var frame = currentFrame + 30.5;
+            if(play) frame = playFrame;
+            var value = 330.5 - task2Curve[curve_id].getValue(frame);
+
+            ctx.moveTo(frame, 0);
+            ctx.lineTo(frame, canvas.height);
+            ctx.fillRect(frame,value,1,1);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.stroke();
+            ctx.beginPath();
+
+            ctx.arc(frame,value,radius,0,2*Math.PI,false);
+            ctx.fill();
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
     
         function drawGrid(stepX, stepY, color, lineWidth){
             // 创建垂直格网线路径
             for(let i = 0.5 + stepX; i < canvas.width; i += stepX){
-                context.moveTo(i, 0);
-                context.lineTo(i, canvas.height);
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
             }
             // 创建水平格网线路径
             for(let j = 0.5 + stepY; j < canvas.height; j += stepY){
-                context.moveTo(0, j);
-                context.lineTo(canvas.width, j);
+                ctx.moveTo(0, j);
+                ctx.lineTo(canvas.width, j);
             }
             // 设置绘制颜色
-            context.strokeStyle = color;
+            ctx.strokeStyle = color;
             // 设置绘制线段的宽度
-            context.lineWidth = lineWidth;
+            ctx.lineWidth = lineWidth;
             // 绘制格网
-            context.stroke();
+            ctx.stroke();
             // 清除路径
-            context.beginPath();
+            ctx.beginPath();
         }
     
         function drawAxes(origin, x_Len, y_Len, color, lineWidth){
     
             // 创建水平坐标轴路径
-            context.moveTo(origin[0], origin[1]);
-            context.lineTo(origin[0] + x_Len, origin[1]);
+            ctx.moveTo(origin[0], origin[1]);
+            ctx.lineTo(origin[0] + x_Len, origin[1]);
     
             // 创建垂直坐标轴路径
-            context.moveTo(origin[0], origin[1]);
-            context.lineTo(origin[0], origin[1] - y_Len);
+            ctx.moveTo(origin[0], origin[1]);
+            ctx.lineTo(origin[0], origin[1] - y_Len);
     
             // 创建坐标轴的刻度线路径
             for(let i = origin[0] + 30; i < x_Len; i += 30){
-                context.moveTo(i, origin[1] - 10);
-                context.lineTo(i, origin[1] + 10);
+                ctx.moveTo(i, origin[1] - 10);
+                ctx.lineTo(i, origin[1] + 10);
             }
             for(let j = origin[1] - 30; j > origin[1] - y_Len; j -= 30){
                 //console.log(j);
-                context.moveTo(origin[0] - 10, j);
-                context.lineTo(origin[0] + 10, j);
+                ctx.moveTo(origin[0] - 10, j);
+                ctx.lineTo(origin[0] + 10, j);
             }
             // 设置绘制颜色
-            context.strokeStyle = color;
+            ctx.strokeStyle = color;
             // 设置绘制线段的宽度
-            context.lineWidth = lineWidth;
+            ctx.lineWidth = lineWidth;
             // 绘制坐标轴
-            context.stroke();
+            ctx.stroke();
             // 清除路径
-            context.beginPath();
+            ctx.beginPath();
         }
     </script>
      

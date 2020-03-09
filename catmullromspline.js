@@ -21,9 +21,11 @@ var CatmullRomSpline = function(canvasId, active = false)
 	// frame and value
 	this.frame = 30.5;
 	this.value = 330.5;
+
+	// add origin node
 	this.addNode(this.frame, this.value);
 
-	//this curve active
+	// this curve active in canvas
 	this.active = active;
 
 	// Setup event listeners
@@ -279,19 +281,21 @@ CatmullRomSpline.prototype.addNode = function(x,y)
 CatmullRomSpline.prototype.getValue = function(x)
 {
 	var y = 330.5;
-	var last = this.nodes[0];
-	var next = this.nodes[1];
-	var t = 0.;
+
+	var end_node = this.nodes[this.nodes.length-1];
+	if (x > end_node.x)
+		return 330.5 - end_node.y;
 
 	for(var i = 1; i<this.nodes.length; i++){
 		//console.log(this.nodes[i-1].x, this.nodes[i-1].y, x, this.nodes[i].x, this.nodes[i].y);
 		if(this.nodes[i-1].x <= x && this.nodes[i].x >= x){
-			last = this.nodes[i-1];
-			next = this.nodes[i];
-			t = (x - last.x)/(next.x - last.x);
+			var last = this.nodes[i-1];
+			var next = this.nodes[i];
+			var t = (x - last.x)/(next.x - last.x);
 			y = (1-t)*last.y + t*next.y;
 			//console.log("get value",t, y);
 		}
 	}
+
 	return 330.5 - y;
 }

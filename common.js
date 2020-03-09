@@ -250,12 +250,18 @@ var Task2 = function(gl)
 	// Create a skeleton
 	this.skeleton = new Skeleton();
 	
-	// create two bones and push them into skeleton
-	this.mJoint1 = new Joint ( 	      null, new Vector(-2, 0, 0), new Vector(0, 1, 0), 1.8, "Upper Arm", gl);
+    // create two bones and push them into skeleton
+    // Joint(parent, position, jointAxis, length, name, gl)
+    // axis:1:twist 2:wig 3:bend
+	this.mJoint1 = new Joint ( 	      null, new Vector(-2, 0, 0), new Vector(1, 0, 0), 1.8, "Upper Arm", gl);
 	this.mJoint2 = new Joint (this.mJoint1, new Vector( 2, 0, 0), new Vector(0, 0, 1), 1.8, "Forearm", gl);
 	
 	this.skeleton.addJoint(this.mJoint1);
-	this.skeleton.addJoint(this.mJoint2);
+    this.skeleton.addJoint(this.mJoint2);
+    
+    this.twist = new Vector(1, 0, 0);
+    this.bend = new Vector(0, 0, 1);
+    this.rot = new Vector(0, 1, 0);
 		
 	// set the skeleton
 	this.mShowWeights = false;
@@ -284,11 +290,11 @@ Task2.prototype.render = function(gl, w, h) {
 	}
 }
 
-Task2.prototype.setJointAngle = function(id, value)
+Task2.prototype.setJointAngle = function(id, dof, value)
 {
 	if(this.skeleton && id < this.skeleton.getNumJoints())
 	{
-		this.skeleton.getJoint(id).setJointAngle(value);
+		this.skeleton.getJoint(id).setJointAngle(dof, value);
 		this.skin.updateSkin();
 	}
 }

@@ -1,7 +1,8 @@
 
-var Node = function(_x,_y) {
+var Node = function(_x,_y, intp="CatmullRom") {
 	this.x = _x;
-	this.y = _y;
+    this.y = _y;
+    this.intp = intp;
 };
 
 Node.lerp = function(a, b, t)

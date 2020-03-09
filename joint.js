@@ -17,11 +17,35 @@ var Joint = function(parent, position, jointAxis, length, name, gl)
     var shader = createShaderProgram(gl, SolidVertexSource, SolidFragmentSource);
 	// Create a cube mesh to represent the joint
 	this.mesh = new TriangleMesh(this.gl, CubePositions, CubeIndices, shader, true, true, new Vector(0.4, 0.7, 0.4), new Vector(0.5, 1, 0.5));
+
+	// rotation axis and angle
+	this.twist = new Vector(1, 0, 0);
+    this.bend = new Vector(0, 0, 1);
+	this.rot = new Vector(0, 1, 0);
+	
+	this.twist_angle = 0;
+	this.bend_angle = 0;
+	this.rot_angle = 0;
 }
 
 // Helper functions.
-Joint.prototype.setJointAngle = function(angle) {
-    this.mJointAngle = angle;
+Joint.prototype.setJointAngle = function(dof, angle) {
+	//this.mJointAngle = angle;
+	if (dof == 0)
+		this.twist_angle = angle;
+	else if(dof == 1)
+		this.bend_angle = angle;
+	else if(dof == 2)
+		this.rot_angle = angle;
+}
+
+Joint.prototype.setJointAxis = function(i){
+	if (i==0)
+		this.mJointAxis = this.twist;
+	else if (i==1)
+		this.mJointAxis = this.rot;
+	else if (i==2)
+		this.mJointAxis = this.rot;
 }
 
 Joint.prototype.setName = function(val) {
@@ -45,7 +69,10 @@ Joint.prototype.getName = function() {
 // Hint: mJointAxis and mPosition are vector objects. You can get their components using
 //       mJointAxis.x, mJointAxis.y, etc.
 Joint.prototype.getLocalMatrix = function() {
-	var localtran = Matrix.rotate(this.mJointAngle, this.mJointAxis.x, this.mJointAxis.y, this.mJointAxis.z);
+	//var localtran = Matrix.rotate(this.mJointAngle, this.mJointAxis.x, this.mJointAxis.y, this.mJointAxis.z);
+	var localtran = Matrix.rotate(this.rot_angle, this.rot.x, this.rot.y, this.rot.z);
+	localtran = Matrix.multiply(Matrix.rotate(this.bend_angle, this.bend.x, this.bend.y, this.bend.z), localtran);
+	localtran = Matrix.multiply(Matrix.rotate(this.twist_angle, this.twist.x, this.twist.y, this.twist.z), localtran);
 	localtran = Matrix.multiply(Matrix.translate(this.mPosition.x, this.mPosition.y, this.mPosition.z), localtran);
 	return localtran;
 }
