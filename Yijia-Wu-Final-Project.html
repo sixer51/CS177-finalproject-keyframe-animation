@@ -27,6 +27,9 @@
 	<script src="beziercurve.js"></script>
 	<script src="Interpolation.js"></script>
     <script src="bspline.js"></script>
+
+    <script src="FileSaver.js"></script>
+
 	
 	<!-- Add all tasks -->
     <script src="task3.js"></script>
@@ -52,6 +55,7 @@
                 <button onclick="restart();">Restart</button>
                 <button onclick="Stop();">Stop</button>
                 <button onclick="Clear(1);">Clear</button>
+                <input type="button" id="export" value="Save"/>
                 <!-- <input type="file" /> -->
             </div>
             <!-- ================================================================= -->  
@@ -101,7 +105,7 @@
                     </div>
                     <div class="form-group">
                         <label for="name">Interpolation Method</label>
-                        <select id="intp" multiple class="form-control" onchange="selectMethod();">
+                        <select id="method" multiple class="form-control" onchange="selectMethod();">
                             <option value="constant">Constant</option>
                             <option value="linear">Linear Interpolation</option>
                             <option value="CatmullRom">Catmull Rom</option>
@@ -111,6 +115,10 @@
                 <button onclick="Clear(2);">Clear Canvas</button>
 				<button onclick="task2Curve[curve_id].addNode(currentFrame+30.5);">Add Node</button>
             </div>
+            <div>
+                <input type="file" id="files"/>
+            </div>
+            
 			<!-- ================================================================= -->
         </div>
     </div>
@@ -138,7 +146,7 @@
         }
 
         function selectMethod(){
-            var nSel = document.getElementById("intp");
+            var nSel = document.getElementById("method");
             var index = nSel.selectedIndex;
             task2Curve[curve_id].method = nSel.options[index].value;
             //console.log(task2Curve[i].method);
@@ -171,10 +179,6 @@
             }
             else if(canvasId == 2)
                 task2Curve[curve_id] = new Interpolation("task-2");
-        }
-
-        function addnode(){
-            task2Curve[curve_id].addNode(currentFrame);
         }
 
         function draw() {
@@ -237,6 +241,58 @@
         function Stop(){
             play = false;
             currentFrame = playFrame;
+        }
+
+        // save file
+        var button = document.getElementById("export");
+        button.addEventListener("click", saveHandler, false);
+        function saveHandler(){
+            var data = {
+                'model':'arm',
+                'curves':[]
+            }
+            for(var i=0; i<task2Curve.length; i++){
+                var curve = [];
+                for(var n=0; n<task2Curve[i].nodes.length; n++){
+                    var node = task2Curve[i].nodes[n];
+                    curve.push({'x':node.x, 'y':node.y, "method":node.method});
+                }
+                data.curves.push(curve);
+            }
+                
+            var content = JSON.stringify(data);
+            var blob = new Blob([content], {type: "text/plain;charset=utf-8"});
+            saveAs(blob, "animation.json");
+        }
+
+        // load file
+        var inputElement = document.getElementById("files");
+        inputElement.addEventListener("change", handleFiles, false);
+        function handleFiles() {
+            var selectedFile = document.getElementById("files").files[0];
+            var name = selectedFile.name;
+            var size = selectedFile.size;
+            console.log("File:"+name+"Size:"+size);
+            var reader = new FileReader();
+            reader.readAsText(selectedFile);
+    
+            reader.onload = function(){
+                console.log("Result", this.result);
+                let json = JSON.parse(this.result);
+
+                for(var i=0; i<task2Curve.length; i++){
+                    var curve = json.curves[i];
+                    console.log(curve[0], curve.length);
+                    if (curve.length==1) continue;
+                    for(var n=1; n<curve.length; n++){
+                        var node = curve[n];
+                        console.log(node.x, node.y, node.method);
+                        task2Curve[i].addNode(node.x, node.y, node.method);
+                    }
+                }
+
+            };
+    
         }
 
         function drawframeline(color, lineWidth, radius){

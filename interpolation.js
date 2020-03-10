@@ -151,6 +151,7 @@ Interpolation.prototype.drawControlPoints = function()
 Interpolation.prototype.drawcurve = function()
 {
 	for (var i=1; i<this.nodes.length; i++){
+
 		var t = this.tension;
 		var x_last = this.nodes[i-1].x;
 		var y_last = this.nodes[i-1].y;
@@ -161,16 +162,25 @@ Interpolation.prototype.drawcurve = function()
 		var x1 = 0;
 		var y1 = 0;
 
+		if(this.nodes[i].method == "constant"){
+			setColors(this.ctx,'black');
+			drawLine(this.ctx, x0, y0, x_this, y0);
+			drawLine(this.ctx, x_this, y0, x_this, y_this);
+			x0 = x_this;
+			y0 = y_this;
+			continue;
+		}
+		else if(this.nodes[i].method == "linear"){
+			setColors(this.ctx,'black');
+			drawLine(this.ctx, x0, y0, x_this, y_this);
+			x0 = x_this;
+			y0 = y_this;
+			continue;
+		}
+
 		for (var u = 1/this.numSegments; u <= 1; u = u+1/this.numSegments){
 			x1 = x_last + u*(x_this - x_last);
 			y1 = 330.5 - this.getValue(x1);
-
-			// k1 = -t*u + 2*t*u*u - t*Math.pow(u, 3);
-			// k2 = 1 + (t-3)*u*u + (2-t)*Math.pow(u, 3);
-			// k3 = t*u + (3-2*t)*u*u +(t-2)*Math.pow(u, 3);
-			// k4 = -t*u*u + t*Math.pow(u, 3);
-			// var x1 = k1*this.nodes[i-2].x + k2*this.nodes[i-1].x + k3*this.nodes[i].x + k4*this.nodes[i+1].x;
-			// var y1 = k1*this.nodes[i-2].y + k2*this.nodes[i-1].y + k3*this.nodes[i].y + k4*this.nodes[i+1].y;
 
 			setColors(this.ctx,'black');
 			drawLine(this.ctx, x0, y0, x1, y1);
@@ -275,7 +285,7 @@ Interpolation.prototype.getValue = function(x)
 			else var next2 = this.nodes[i];
 
 			var t = (x - last.x)/(next.x - last.x);
-			y = this.choosemethod(next.intp, last2, last, next, next2, t);
+			y = this.choosemethod(next.method, last2, last, next, next2, t);
 			//console.log("get value",t, y);
 		}
 	}
